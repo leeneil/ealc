@@ -42,22 +42,30 @@ page_url = root_page
 
 if crawl:
     while count < lim:
+        prev_count = count
         page = page + 1
         page_url = root_page + '&page=' + str(page)
         try:
             html = urllib.request.urlopen( page_url  ).read()
-        except urllib.error.HTTPError:
-            print('longer cooling down......')
-            time.sleep(10*cd_time)
-            page = page - 1
-            continue
+        except urllib.error.HTTPError as e:
+            print(e)
+            print(e.code)
+            if e.code == 404 or e.code == '404':
+                print('last page reached')
+                break
+            else:
+                print('longer cooling down......')
+                time.sleep(10*cd_time)
+                page = page - 1
+                continue
 
 
         links = re.findall(r"href=\\'(\/talks\/[\S\?\-]+)\\'", str(html))
         all_links += set(links)
         count = len( all_links )
         print('now ' + str(count) + ' links in the database')
-
+        if count == prev_count:
+            break
         if page % cd_count == 0:
             print('cooling down......')
             time.sleep(cd_time)
@@ -98,12 +106,18 @@ for link in all_links:
 
     try:
         jsn = urllib.request.urlopen(transcript_url)
-    except urllib.error.HTTPError:
-        print('longer cooling down......')
-        time.sleep(10*cd_time)
-        all_links.append( link )
-        retry_links.append( link )
-        continue
+    except urllib.error.HTTPError as e:
+        print(e)
+        print(e.code)
+        if e.code == 404 or e.code == '404':
+            print('page not found')
+            continue
+        else:
+            print('longer cooling down......')
+            time.sleep(10*cd_time)
+            all_links.append( link )
+            retry_links.append( link )
+            continue
 
     jsn = jsn.read().decode(jsn.headers.get_content_charset())
 
