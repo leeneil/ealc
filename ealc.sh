@@ -11,4 +11,4 @@ python3 buildTFRecord.py --test-percentage 0.2
 # --batch-size: the size of each mini-batch
 # --print-steps: Print the log to screen every other this number of steps.
 echo "------------------------ trainModel.py ------------------------"
-python3 trainModel.py --num-train-steps 100 --batch-size 10 --print-steps 10
+python3 trainModel.py --num-train-steps 1500 --batch-size 100 --print-steps 100 -- eval-steps 500 --image-size 128
