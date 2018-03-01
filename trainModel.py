@@ -499,4 +499,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     main(args.tfrecords_dir, args.output_dir, int(args.num_train_steps), int(args.bath_size),
-                int(args.print_steps), int(args.evaluate_steps))
+                int(args.print_steps), int(args.evaluate_steps), int(args.image_size))
