@@ -13,13 +13,13 @@ import math
 
 random.seed(230)
 
-fonts = ['fonts/NotoSerifCJK-ExtraLight.ttc', 'fonts/NotoSerifCJK-Light.ttc',
-    'fonts/NotoSerifCJK-Regular.ttc', 'fonts/NotoSerifCJK-Medium.ttc', 
-    'fonts/NotoSerifCJK-SemiBold.ttc', 'fonts/NotoSerifCJK-Bold.ttc',
-    'fonts/NotoSerifCJK-Black.ttc', 'fonts/NotoSansCJK-Thin.ttc', 
-    'fonts/NotoSansCJK-Light.ttc', 'fonts/NotoSansCJK-DemiLight.ttc',
-    'fonts/NotoSansCJK-Regular.ttc', 'fonts/NotoSansCJK-Medium.ttc',
-    'fonts/NotoSansCJK-Bold.ttc', 'fonts/NotoSansCJK-Black.ttc']
+fonts = ['../fonts/NotoSerifCJK-ExtraLight.ttc', '../fonts/NotoSerifCJK-Light.ttc',
+    '../fonts/NotoSerifCJK-Regular.ttc', '../fonts/NotoSerifCJK-Medium.ttc', 
+    '../fonts/NotoSerifCJK-SemiBold.ttc', '../fonts/NotoSerifCJK-Bold.ttc',
+    '../fonts/NotoSerifCJK-Black.ttc', '../fonts/NotoSansCJK-Thin.ttc', 
+    '../fonts/NotoSansCJK-Light.ttc', '../fonts/NotoSansCJK-DemiLight.ttc',
+    '../fonts/NotoSansCJK-Regular.ttc', '../fonts/NotoSansCJK-Medium.ttc',
+    '../fonts/NotoSansCJK-Bold.ttc', '../fonts/NotoSansCJK-Black.ttc']
 font = 'fonts/NotoSansCJK-Regular.ttc'
 new_size = 128
 sample_path = 'samples_128/'

@@ -9,7 +9,7 @@ lim = 10
 start = 0
 cd_count = 5
 cd_time = 5
-crawl = True
+crawl = False
 
 if len(sys.argv) < 2:
     raise('Please specify language')
@@ -111,6 +111,8 @@ for link in all_links:
         print(e.code)
         if e.code == 404 or e.code == '404':
             print('page not found')
+            continue
+        if e.code == 599 or e.code == '599':
             continue
         else:
             print('longer cooling down......')
