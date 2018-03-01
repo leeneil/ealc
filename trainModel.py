@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+# Reference: https://github.com/IBM/tensorflow-hangul-recognition
 import argparse
 import io
 import os
@@ -21,14 +21,16 @@ DEFAULT_SAVE_NAME = 'saved-model'
 DEFAULT_OUTPUT_DIR = os.path.join(SCRIPT_PATH, DEFAULT_SAVE_NAME)
 
 MODEL_NAME = 'ealc_tensorflow'
-IMAGE_WIDTH = 128
-IMAGE_HEIGHT = 128
+DEFAULT_IMAGE_SIZE = 128
+#IMAGE_WIDTH = DEFAULT_IMAGE_SIZE
+#IMAGE_HEIGHT = DEFAULT_IMAGE_SIZE
 
 DEFAULT_NUM_TRAIN_STEPS = 2000
 DEFAULT_PRINT_STEPS = 100
+DEFAULT_EVAL_STEPS = 200
 BATCH_SIZE = 100
 
-def get_image(files, num_classes):
+def get_image(files, num_classes, image_size):
     """This method defines the retrieval image examples from TFRecords files.
 
     Here we will define how the images will be represented (grayscale,
@@ -60,7 +62,7 @@ def get_image(files, num_classes):
     # Decode the PNG.
     image = tf.image.decode_png(image_encoded, channels=1)
     image = tf.image.convert_image_dtype(image, dtype=tf.float32)
-    image = tf.reshape(image, [IMAGE_WIDTH*IMAGE_HEIGHT])
+    image = tf.reshape(image, [image_size*image_size])
     
     # Represent the label as a one hot vector.
     label = tf.stack(tf.one_hot(label, num_classes))
@@ -68,7 +70,7 @@ def get_image(files, num_classes):
     return label, image
 
 
-def export_model(model_output_dir, input_node_names, output_node_name):
+def export_model(model_output_dir, input_node_names, output_node_name, step):
     """Export the model so we can use it later.
 
     This will create two Protocol Buffer files in the model output directory.
@@ -95,7 +97,7 @@ def export_model(model_output_dir, input_node_names, output_node_name):
             tf.float32.as_datatype_enum)
 
     optimized_graph_file = os.path.join(model_output_dir,
-                                        'optimized_' + MODEL_NAME + '.pb')
+                                        'optimized_' + MODEL_NAME + '_' + str(step) + '.pb')
     with tf.gfile.FastGFile(optimized_graph_file, "wb") as f:
         f.write(output_graph_def.SerializeToString())
 
@@ -134,7 +136,94 @@ def print_confuMat(confuMat):
             toPrint += "{:0.3f}".format(col) + "\t"
         print(toPrint)       
 
-def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_steps):
+def evaluate_train_data(sess,x,y,y_,keep_prob,train_data_files, bath_size, correct_prediction, num_classes, image_batch, label_batch):     
+    # Calculate the overall training accuracy and confusion matrix
+    print('-------- Training Report --------')     
+    # 1. Get number of samples in training set.
+    sample_count = 0
+    for f in train_data_files:
+        sample_count += sum(1 for _ in tf.python_io.tf_record_iterator(f))
+    # 2. See how model did by running the training set through the model.
+    print('Evaluating the whole train set...')
+    # 3. We will run the train set through batches and sum the total number of correct predictions.
+    num_batches = int(sample_count/bath_size) or 1
+    total_correct_preds = 0
+    # 4. Define a different tensor operation for summing the correct predictions.
+    accuracy2 = tf.reduce_sum(correct_prediction)
+    accu_confusionMat = np.zeros((num_classes,num_classes))
+    for s in range(num_batches):
+        # 4A. Accuracy for Train Set
+        image_batch2, label_batch2 = sess.run([image_batch, label_batch])
+        acc = sess.run(accuracy2, feed_dict={x: image_batch2,
+                                             y_: label_batch2,
+                                             keep_prob: 1.0})
+        total_correct_preds += acc
+        # 4B. Confusion Matrix for Train Set
+        train_labels = label_batch2
+        train_predictions = sess.run(y, feed_dict={x: image_batch2, y_: label_batch2, keep_prob: 1.0})
+        nature_labels =   np.argmax(train_labels, axis=1)
+        nature_predicts = np.argmax(train_predictions, axis=1)
+        curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
+        accu_confusionMat += sess.run(curr_confusionMat)           
+           
+    # 5. Record the overall accuracy
+    accuracy_percent = total_correct_preds/(num_batches*bath_size)
+    print("Overall Training Accuracy {}".format(accuracy_percent))        
+    # 6. Record the overall confusion matrix
+    accu_confusionMat = accu_confusionMat/np.sum(accu_confusionMat,axis=1,keepdims=True)
+    print('Overall Training Confusion Matrix:')
+    print_confuMat(accu_confusionMat)
+    return (accuracy_percent, accu_confusionMat)     
+
+def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct_prediction, num_classes, timage_batch, tlabel_batch, save_mislabeled=False):
+    # 1. Get number of samples in test set.
+    sample_count = 0
+    for f in test_data_files:
+        sample_count += sum(1 for _ in tf.python_io.tf_record_iterator(f))
+    # 2. See how model did by running the testing set through the model.
+    print('Testing model by test set...')
+    # 3. We will run the test set through batches and sum the total number of correct predictions.
+    num_batches = int(sample_count/bath_size) or 1
+    total_correct_preds = 0
+    # 4. Define a different tensor operation for summing the correct predictions.
+    accuracy2 = tf.reduce_sum(correct_prediction)
+    accu_confusionMat = np.zeros((num_classes,num_classes))
+    mislabeled = []
+    for s in range(num_batches):
+        # 4.a Accuracy for Test Set
+        image_batch2, label_batch2 = sess.run([timage_batch, tlabel_batch])
+        acc = sess.run(accuracy2, feed_dict={x: image_batch2,
+                                             y_: label_batch2,
+                                             keep_prob: 1.0})
+        total_correct_preds += acc   
+
+        
+        # 4.b Confusion Matrix for Test Set
+        test_labels = label_batch2
+        test_predictions = sess.run(y, feed_dict={x: image_batch2, y_: label_batch2, keep_prob: 1.0})
+        nature_labels =   np.argmax(test_labels, axis=1)
+        nature_predicts = np.argmax(test_predictions, axis=1)
+        curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
+        accu_confusionMat += sess.run(curr_confusionMat)      
+        # 4.c record the mislabeled predictions to "mislabeled"            
+        if save_mislabeled:
+            for i in range(len(nature_labels)):
+                mislabeled.append((image_batch2[i],nature_labels[i],nature_predicts[i]))   # log              
+    
+    accuracy_percent = total_correct_preds/(num_batches*bath_size)
+    print("Testing Accuracy {}".format(accuracy_percent))
+    print('Confusion Matrix:')
+    accu_confusionMat = accu_confusionMat/np.sum(accu_confusionMat,axis=1,keepdims=True)
+    print_confuMat(accu_confusionMat)    
+    # 5. record the results of testing to trainLog and save mislabeled
+    if save_mislabeled:
+        logName = "Mislabeled{:%m%d%H%M}".format(datetime.datetime.today())    
+        with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
+            pickle.dump(mislabeled, handle, protocol=pickle.HIGHEST_PROTOCOL) # save mislabeled
+    return (accuracy_percent, accu_confusionMat)
+ 
+ 
+def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_steps, evaluate_steps, image_size):
     """Perform graph definition and model training.
     Here we will first create our input pipeline for reading in TFRecords
     files and producing random batches of images and labels.
@@ -153,6 +242,7 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
     input_node_name = 'input'
     keep_prob_node_name = 'keep_prob'
     output_node_name = 'output'
+    correct_prediction_node_name = 'correct_prediction'
 
     if not os.path.exists(model_output_dir):
         os.makedirs(model_output_dir)
@@ -164,11 +254,11 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
 
     tf_record_pattern = os.path.join(tfrecords_dir, '%s-*' % 'train')
     train_data_files = tf.gfile.Glob(tf_record_pattern)
-    label, image = get_image(train_data_files, num_classes)
+    label, image = get_image(train_data_files, num_classes, image_size)
 
     tf_record_pattern = os.path.join(tfrecords_dir, '%s-*' % 'test')
     test_data_files = tf.gfile.Glob(tf_record_pattern)
-    tlabel, timage = get_image(test_data_files, num_classes)
+    tlabel, timage = get_image(test_data_files, num_classes, image_size)
 
     # Associate objects with a randomly selected batch of labels and images.
     image_batch, label_batch = tf.train.shuffle_batch(
@@ -184,14 +274,14 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
     # Create the model!                           #
     # #############################################
     # Placeholder to feed in image data.
-    x = tf.placeholder(tf.float32, [None, IMAGE_WIDTH*IMAGE_HEIGHT],
+    x = tf.placeholder(tf.float32, [None, image_size*image_size],
                        name=input_node_name)
     # Placeholder to feed in label data. Labels are represented as one_hot
     # vectors.
-    y_ = tf.placeholder(tf.float32, [None, num_classes]) 
+    y_ = tf.placeholder(tf.float32, [None, num_classes],'y_label')  #, name=label_node_name
 
     # Reshape the image back into two dimensions so we can perform convolution.
-    x_image = tf.reshape(x, [-1, IMAGE_WIDTH, IMAGE_HEIGHT, 1])
+    x_image = tf.reshape(x, [-1, image_size, image_size, 1])
 
     # First convolutional layer. 32 feature maps.
     W_conv1 = weight_variable([5, 5, 1, 32])
@@ -225,8 +315,8 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
                              strides=[1, 2, 2, 1], padding='SAME')
                              
     # Fully connected layer. Here we choose to have 1024 neurons in this layer.
-    h_pool_flat = tf.reshape(h_pool3, [-1, int(IMAGE_WIDTH/8*IMAGE_HEIGHT/8*128)])
-    W_fc1 = weight_variable([int(IMAGE_WIDTH/8*IMAGE_HEIGHT/8*128), 1024])
+    h_pool_flat = tf.reshape(h_pool3, [-1, int(image_size/8*image_size/8*128)])
+    W_fc1 = weight_variable([int(image_size/8*image_size/8*128), 1024])
     b_fc1 = bias_variable([1024])
     h_fc1 = tf.nn.relu(tf.matmul(h_pool_flat, W_fc1) + b_fc1)
 
@@ -255,13 +345,13 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
 
     # Define accuracy.
     correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(y_, 1))
-    correct_prediction = tf.cast(correct_prediction, tf.float32)
+    correct_prediction = tf.cast(correct_prediction, tf.float32, name=correct_prediction_node_name)
     accuracy = tf.reduce_mean(correct_prediction)
     saver = tf.train.Saver()
     
     # initialize the Model Log
-    mlog = ModelLog()
-    mlog.print_steps = print_steps
+    trainLog = ModelLog()
+    trainLog.print_steps = print_steps
 
     with tf.Session() as sess: 
         # #############################################
@@ -289,7 +379,7 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
             sess.run(train_step, feed_dict={x: train_images, y_: train_labels,
                                             keep_prob: 0.5})
             
-            # Print the training accuracy every 100 iterations.
+            # Every 100 iterations, we print the training accuracy.
             if step % print_steps == 0:
                 train_accuracy, train_loss = sess.run(
                     [accuracy, cross_entropy],
@@ -306,132 +396,66 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
                 curr_confusionMat = sess.run(curr_confusionMat)
                 print('Confusion Matrix:')
                 print_confuMat(curr_confusionMat/np.sum(curr_confusionMat,axis=1,keepdims=True))
-                # record the results of this training step to mlog
-                mlog.train_accu.append(train_accuracy)          # log
-                mlog.train_loss.append(train_loss)              # log
-                mlog.train_confuMat = curr_confusionMat         # log
+                # record the results of this training step to trainLog
+                trainLog.train_accu.append(train_accuracy)          # log
+                trainLog.train_loss.append(train_loss)              # log
+                trainLog.train_confuMat = curr_confusionMat         # log
                 
                 # Save the .pickle log in case the program carshes early. 
-                logName = "trainingLog{:%m%d}".format(datetime.datetime.today())
+                logName = "printLog{:%m%d}".format(datetime.datetime.today())
                 with open(os.path.join('saved-model',logName+'.pickle'), 'wb') as handle:
-                    pickle.dump(mlog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save mlog 
-                
-
+                    pickle.dump(trainLog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save trainLog 
+            
+            # Every 5000 iterations, we evalue train set and save a model.
+            if step % evaluate_steps == 0 and step>0:
+                # save model
+                accuracy_percent, accu_confusionMat =  evaluate_test_data(sess,x,y,y_,keep_prob,
+                                                test_data_files, bath_size, correct_prediction, 
+                                                num_classes, timage_batch, tlabel_batch, False)
+                trainLog.test_accu =     accuracy_percent    # log
+                trainLog.test_confuMat=  accu_confusionMat   # log
+                # save pickles
+                logName = "evaluateLog{:%m%d}".format(datetime.datetime.today()) + "_step{:06}".format(step)
+                with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
+                    pickle.dump(trainLog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save temporary trainLog with test set
+                export_model(model_output_dir, [input_node_name, keep_prob_node_name],
+                    output_node_name, step)
+                    
+            
             # Every 10,000 iterations, we save a checkpoint of the model.
-            if step % 10000 == 0:
+            if step % 10000 == 0 and step>0:
                 saver.save(sess, checkpoint_file, global_step=step)
+            
 
         # Save a checkpoint after training has completed.
         saver.save(sess, checkpoint_file)
+        #export_model(model_output_dir, [input_node_name, keep_prob_node_name],
+        #             output_node_name, 'Final')
         export_model(model_output_dir, [input_node_name, keep_prob_node_name],
-                     output_node_name)
+                     correct_prediction_node_name, 'Final')             
         print('The model has been exported to a .pb file!')
         
         # #############################################
-        # Evaluating the whole training set!          #
+        # Evaluate the whole training set!          #
         # #############################################
-        print('-------- Training Report --------')        
-        # Calculate the overall training accuracy and confusion matrix
-        # 0. get batches
-        #image_batch, label_batch = tf.train.batch(
-        #[image, label], batch_size=bath_size, capacity=2000) 
-        
-        # 1. Get number of samples in training set.
-        sample_count = 0
-        for f in train_data_files:
-            sample_count += sum(1 for _ in tf.python_io.tf_record_iterator(f))
-        # 2. See how model did by running the training set through the model.
-        print('Evaluating the whole train set...')
-        # 3. We will run the train set through batches and sum the total number of correct predictions.
-        num_batches = int(sample_count/bath_size) or 1
-        total_correct_preds = 0
-        # 4. Define a different tensor operation for summing the correct predictions.
-        accuracy2 = tf.reduce_sum(correct_prediction)
-        accu_confusionMat = np.zeros((num_classes,num_classes))
-        for step in range(num_batches):
-            # 4A. Accuracy for Train Set
-            image_batch2, label_batch2 = sess.run([image_batch, label_batch])
-            acc = sess.run(accuracy2, feed_dict={x: image_batch2,
-                                                 y_: label_batch2,
-                                                 keep_prob: 1.0})
-            total_correct_preds += acc
-            # 4B. Confusion Matrix for Train Set
-            train_labels = label_batch2
-            train_predictions = sess.run(y, feed_dict={x: image_batch2, y_: label_batch2, keep_prob: 1.0})
-            nature_labels =   np.argmax(train_labels, axis=1)
-            nature_predicts = np.argmax(train_predictions, axis=1)
-            curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
-            accu_confusionMat += sess.run(curr_confusionMat)           
-            # 4C. Record the mislabeled predictions to mlog
-            #for i in range(len(nature_labels)):
-            #    mlog.train_overall_misLabeled.append((image_batch2[i],nature_labels[i],nature_predicts[i]))   # log           
-        # 5. Record the overall accuracy
-        accuracy_percent = total_correct_preds/(num_batches*bath_size)
-        mlog.train_overall_accu.append(accuracy_percent)        # log        
-        print("Overall Training Accuracy {}".format(accuracy_percent))        
-        # 6. Record the overall confusion matrix
-        accu_confusionMat = accu_confusionMat/np.sum(accu_confusionMat,axis=1,keepdims=True)
-        mlog.train_overall_confuMat.append(accu_confusionMat)   # log
-        print('Overall Training Confusion Matrix:')
-        print_confuMat(accu_confusionMat)
+        accuracy_percent, accu_confusionMat = evaluate_train_data(sess,x,y,y_,keep_prob,
+                                                train_data_files, bath_size, correct_prediction, 
+                                                num_classes, image_batch, label_batch)
+        trainLog.train_overall_accu = accuracy_percent        # log        
+        trainLog.train_overall_confuMat = accu_confusionMat   # log
         
         
         # #############################################
-        # Testing Steps!                              #
+        # Evaluate Testing Set!                       #
         # #############################################  
-        # Get number of samples in test set.
-        sample_count = 0
-        for f in test_data_files:
-            sample_count += sum(1 for _ in tf.python_io.tf_record_iterator(f))
-
-        # See how model did by running the testing set through the model.
-        print('Testing model by test set...')
-
-        # We will run the test set through batches and sum the total number
-        # of correct predictions.
-        num_batches = int(sample_count/bath_size) or 1
-        total_correct_preds = 0
-
-        # Define a different tensor operation for summing the correct
-        # predictions.
-        accuracy2 = tf.reduce_sum(correct_prediction)
-        accu_confusionMat = np.zeros((num_classes,num_classes))
-        for step in range(num_batches):
-            # Accuracy for Test Set
-            image_batch2, label_batch2 = sess.run([timage_batch, tlabel_batch])
-            acc = sess.run(accuracy2, feed_dict={x: image_batch2,
-                                                 y_: label_batch2,
-                                                 keep_prob: 1.0})
-            total_correct_preds += acc
-            
-            # Confusion Matrix for Test Set
-            test_labels = label_batch2
-            test_predictions = sess.run(y, feed_dict={x: image_batch2, y_: label_batch2, keep_prob: 1.0})
-            nature_labels =   np.argmax(test_labels, axis=1)
-            nature_predicts = np.argmax(test_predictions, axis=1)
-            curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
-            accu_confusionMat += sess.run(curr_confusionMat)
-           
-            # record the mislabeled predictions to mlog
-            mislabeled = []
-            for i in range(len(nature_labels)):
-                mislabeled.append((image_batch2[i],nature_labels[i],nature_predicts[i]))   # log
-                  
-        accuracy_percent = total_correct_preds/(num_batches*bath_size)
-        print("Testing Accuracy {}".format(accuracy_percent))
-        print('Confusion Matrix:')
-        accu_confusionMat = accu_confusionMat/np.sum(accu_confusionMat,axis=1,keepdims=True)
-        print_confuMat(accu_confusionMat)
-        
-        # record the results of testing to mlog and save mlog
-        mlog.test_accu.append(accuracy_percent)        # log
-        mlog.test_confuMat.append(accu_confusionMat)   # log
-        logName = "Log{:%m%d%H%M}".format(datetime.datetime.today())
+        accuracy_percent, accu_confusionMat =  evaluate_test_data(sess,x,y,y_,keep_prob,
+                                                test_data_files, bath_size, correct_prediction, 
+                                                num_classes, timage_batch, tlabel_batch, True)       
+        trainLog.test_accu =     accuracy_percent    # log
+        trainLog.test_confuMat=  accu_confusionMat   # log
+        logName = "Final_Log{:%m%d%H%M}".format(datetime.datetime.today())
         with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
-            pickle.dump(mlog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save mlog
-        logName = "Mislabeled{:%m%d%H%M}".format(datetime.datetime.today())    
-        with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
-            pickle.dump(mlog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save mlog
+            pickle.dump(trainLog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save trainLog
         print('The result (and log) of training is saved!')  
         
         
@@ -465,9 +489,14 @@ if __name__ == '__main__':
     parser.add_argument('--print-steps', type=str, dest='print_steps',
                         default=DEFAULT_PRINT_STEPS,
                         help='Print the accuracy every other this number of steps.')                    
-                        
+    parser.add_argument('--eval-steps', type=str, dest='evaluate_steps',
+                        default=DEFAULT_EVAL_STEPS,
+                        help='Evaluate test set every other this number of steps.')
+    parser.add_argument('--image-size', type=str, dest='image_size',
+                        default=DEFAULT_IMAGE_SIZE,
+                        help='Image size assuming images are square.')                    
                         
     args = parser.parse_args()
     
     main(args.tfrecords_dir, args.output_dir, int(args.num_train_steps), int(args.bath_size),
-                int(args.print_steps))
+                int(args.print_steps), int(args.evaluate_steps))
