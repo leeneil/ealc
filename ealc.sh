@@ -1,14 +1,13 @@
 #!/bin/bash  
-# --path1-data: path of data
-# --path2-data: subpath of data 
-# --num-data: number of images included in each images
+
+echo "------------------------ timer.py ------------------------"
+# --time: sleep time (unit: hour)
+python3 timer.py --time 0
 echo "------------------------ buildLabelCSV.py ------------------------"
-python3 buildLabelCSV.py --path1-data data --path2-data wikipedia/samples_128 --num-data 100
-# --test-percentage: the percentage for test set 
+# --path1-data: path of data before "tw"
+# --path2-data: path of data after "tw"
+python3 buildLabelCSV.py --path1-data data --path2-data ted/samples_128 --num-data 100
 echo "------------------------ buildTFRecord.py ------------------------"
 python3 buildTFRecord.py --test-percentage 0.2
-# --num-train-steps: number of min-batch traning steps
-# --batch-size: the size of each mini-batch
-# --print-steps: Print the log to screen every other this number of steps.
 echo "------------------------ trainModel.py ------------------------"
-python3 trainModel.py --num-train-steps 1500 --batch-size 100 --print-steps 100 -- eval-steps 500 --image-size 128
+python3 trainModel.py --num-train-steps 100 --batch-size 10 --print-steps 10 -- eval-steps 30 --image-size 128
