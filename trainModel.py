@@ -137,8 +137,7 @@ def print_confuMat(confuMat):
         print(toPrint)       
 
 def evaluate_train_data(sess,x,y,y_,keep_prob,train_data_files, bath_size, correct_prediction, num_classes, image_batch, label_batch):     
-    # Calculate the overall training accuracy and confusion matrix
-    print('-------- Training Report --------')     
+    # Calculate the overall training accuracy and confusion matrix    
     # 1. Get number of samples in training set.
     sample_count = 0
     for f in train_data_files:
@@ -408,23 +407,25 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
             
             # Every 5000 iterations, we evalue train set and save a model.
             if step % evaluate_steps == 0 and step>0:
-                # save model
+                print('--------- Eval step ---------')
+                # save pickles
                 accuracy_percent, accu_confusionMat =  evaluate_test_data(sess,x,y,y_,keep_prob,
                                                 test_data_files, bath_size, correct_prediction, 
                                                 num_classes, timage_batch, tlabel_batch, False)
                 trainLog.test_accu =     accuracy_percent    # log
-                trainLog.test_confuMat=  accu_confusionMat   # log
-                # save pickles
+                trainLog.test_confuMat=  accu_confusionMat   # log                
                 logName = "evaluateLog{:%m%d}".format(datetime.datetime.today()) + "_step{:06}".format(step)
                 with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
                     pickle.dump(trainLog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save temporary trainLog with test set
+                # save model
+                saver.save(sess, checkpoint_file)
                 export_model(model_output_dir, [input_node_name, keep_prob_node_name],
-                    output_node_name, step)
-                    
+                    correct_prediction_node_name, step)
+                print('-----------------------------')    
             
             # Every 10,000 iterations, we save a checkpoint of the model.
-            if step % 10000 == 0 and step>0:
-                saver.save(sess, checkpoint_file, global_step=step)
+            #if step % 10000 == 0 and step>0:
+            #    saver.save(sess, checkpoint_file, global_step=step)
             
 
         # Save a checkpoint after training has completed.
@@ -435,6 +436,7 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
                      correct_prediction_node_name, 'Final')             
         print('The model has been exported to a .pb file!')
         
+        print('========= Training Report =========') 
         # #############################################
         # Evaluate the whole training set!          #
         # #############################################
@@ -457,7 +459,7 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
         with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
             pickle.dump(trainLog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save trainLog
         print('The result (and log) of training is saved!')  
-        
+        print('===================================')
         
         # Stop queue threads and close session.
         coord.request_stop()
