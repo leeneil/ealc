@@ -11,15 +11,34 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+pb_file = 'saved-model/optimized_ealc_tensorflow_Final.pb'
 layer = 1
+if len(sys.argv) > 1:
+    layer = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        pb_file = sys.argv[2]
+
+print('input: ' + pb_file)
+print('analyzing layer ' + str(layer))
+
+
 export_dir = '/Users/liponan/Work/ml/ealc-tmp/saved-model/'
 model_name = 'chkp_ealc_tensorflow.pb'
+
 vectorize = True
 k = 5
 s = 1
 b = 2
 
 heap_lim = 9
+
+def img_patch( img, uu, vv, k=5, s=1, b=2, layer=1 ):
+    uu0 = layer * b * uu
+    uu1 = uu0 + k + layer * b - 1
+    vv0 = layer * b * vv
+    vv1 = vv0 + k + layer * b - 1
+    return img[ uu0:uu1, vv0:vv1 ]
+
 
 def make_mosaic( vol, space = 1):
     (h,w,l) = vol.shape
@@ -100,17 +119,21 @@ def load_graph(frozen_graph_filename):
 
 ###############################################################################
 
-graph = load_graph(export_dir + model_name)
+graph = load_graph(pb_file)
 
 for op in graph.get_operations():
     print(op.name)
 
 x = graph.get_tensor_by_name('prefix/input:0')
-w = graph.get_tensor_by_name('prefix/weight:0')
-p = graph.get_tensor_by_name('prefix/MaxPool:0')
+if layer == 1:
+    w = graph.get_tensor_by_name('prefix/weight:0')
+    p = graph.get_tensor_by_name('prefix/MaxPool:0')
+else:
+    w = graph.get_tensor_by_name('prefix/weight_' + str(layer-1) + ':0')
+    p = graph.get_tensor_by_name('prefix/MaxPool_' + str(layer-1) + ':0')
 
 l = int(p.shape[3])
-pad_size = int( (k-1)/2 )
+pad_size = layer * int( (k-1)/2 )
 # p_max = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 # p_max_source = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 
@@ -122,9 +145,13 @@ for u in range(l):
 
 count = 0
 with tf.Session(graph=graph) as sess:
-    for u, line in enumerate(fileinput.input()):
+    for u, line in enumerate(sys.stdin):
+        # print(line)
         filename = line.rstrip()
         img = cv2.imread( filename )
+        if img is None:
+            print('weird: ' + filename)
+            continue
         if len(img.shape) > 2:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         if vectorize:
@@ -168,27 +195,32 @@ total_score = 0
 m = int( np.ceil( np.sqrt(heap_lim) ) )
 n = int( np.ceil( heap_lim / m ) )
 space = 3
-h = k+b-1
-w = k+b-1
+h = k + layer*b - 1
+w = k + layer*b - 1
 
 print('making figures...')
 u_stack = np.zeros( ( m*(h+space)-space, n*(w+space)-space, l) )
 for u in range(l):
-    v_stack = np.zeros( (k+b-1,k+b-1,heap_lim) )
+    v_stack = np.zeros( (k+layer*b-1,k+layer*b-1,heap_lim) )
     for v in range(heap_lim):
         total_score += p_list[u][v][0]
         filename = p_list[u][v][3]
+        if filename == '':
+            break
         img = cv2.imread( filename )
+        if img is None:
+            print('weird: ' + filename)
+            continue
         if len(img.shape) > 2:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img_pad = np.pad( img, ( (pad_size,pad_size), (pad_size,pad_size)), 'constant', constant_values=255 )
         (uu,vv) = p_list[u][v][1:3]
-        v_stack[:,:,v] = img_pad[ (b*s*uu):(b*s*uu+k+b-1), (b*s*vv):(b*s*vv+k+b-1) ]
+        v_stack[:,:,v] = img_patch( img_pad, uu, vv, k, s, b, layer )
     u_stack[:,:,u] = make_mosaic( v_stack, space )
     print_grid( v_stack, 'layer_' + str(layer) + '_stack_' + str(u), 3)
 print_grid( u_stack, 'layer_' + str(layer) + '_stack', 8)
 
-print('total score: ' + str(total_score))
+print('total score: ' + str(total_score/l/heap_lim))
 
 
 
