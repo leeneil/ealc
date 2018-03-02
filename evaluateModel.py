@@ -25,9 +25,9 @@ def evalModel(model_dir, model_name, tfrecords_dir):
         ## Load Graph
         load_graph(os.path.join(model_dir , model_name))
         graph = sess.graph
-        print('The content of the graph')
-        for op in graph.get_operations():
-            print(op.name)
+        #print('The content of the graph')
+        #for op in graph.get_operations():
+        #    print(op.name)
 
         # Read graph nodes
         x = graph.get_tensor_by_name('input:0')
