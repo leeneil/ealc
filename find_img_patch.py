@@ -11,6 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+layer = 1
 export_dir = '/Users/liponan/Work/ml/ealc-tmp/saved-model/'
 model_name = 'chkp_ealc_tensorflow.pb'
 vectorize = True
@@ -19,6 +20,17 @@ s = 1
 b = 2
 
 heap_lim = 9
+
+def make_mosaic( vol, space = 1):
+    (h,w,l) = vol.shape
+    m = int( np.ceil( np.sqrt(l) ) )
+    n = int( np.ceil( l / m ) )
+    canvas = 255 * np.ones( ( (h+space)*m-space, (w+space)*n-space, ) )
+    for u in range(l):
+        uu = u % m
+        vv = int( u / m )
+        canvas[ uu*(h+space):(uu*(h+space)+h), vv*(w+space):(vv*(w+space)+w) ] = vol[:,:,u]
+    return canvas
 
 def print_grid( v, name = 'grid', n = 8, colormap = cm.gray):
     if len(v.shape) == 3:
@@ -108,6 +120,7 @@ for u in range(l):
     p_list.append( [] )
     heapq.heappush( p_list[u], (0, -1, -1, '') )
 
+count = 0
 with tf.Session(graph=graph) as sess:
     for u, line in enumerate(fileinput.input()):
         filename = line.rstrip()
@@ -130,6 +143,9 @@ with tf.Session(graph=graph) as sess:
                     heapq.heappush( p_list[v], (act_max, uu, vv, filename) )
                 else:
                     heapq.heappushpop( p_list[v], (act_max, uu, vv, filename) )
+        count += 1
+        if count % 1000 == 0:
+            print('done ' + str(count))
 
             '''
             if act_max > p_list[v]['max']:
@@ -148,7 +164,15 @@ with tf.Session(graph=graph) as sess:
 
 total_score = 0
 
-u_stack = np.zeros( (k+b-1,k+b-1,heap_lim*l) )
+
+m = int( np.ceil( np.sqrt(heap_lim) ) )
+n = int( np.ceil( heap_lim / m ) )
+space = 3
+h = k+b-1
+w = k+b-1
+
+print('making figures...')
+u_stack = np.zeros( ( m*(h+space)-space, n*(w+space)-space, l) )
 for u in range(l):
     v_stack = np.zeros( (k+b-1,k+b-1,heap_lim) )
     for v in range(heap_lim):
@@ -160,9 +184,9 @@ for u in range(l):
         img_pad = np.pad( img, ( (pad_size,pad_size), (pad_size,pad_size)), 'constant', constant_values=255 )
         (uu,vv) = p_list[u][v][1:3]
         v_stack[:,:,v] = img_pad[ (b*s*uu):(b*s*uu+k+b-1), (b*s*vv):(b*s*vv+k+b-1) ]
-        u_stack[:,:,v+heap_lim*u] = v_stack[:,:,v]
-    print_grid( v_stack, 'stack_' + str(u), 3)
-print_grid( u_stack, 'stack', 18)
+    u_stack[:,:,u] = make_mosaic( v_stack, space )
+    print_grid( v_stack, 'layer_' + str(layer) + '_stack_' + str(u), 3)
+print_grid( u_stack, 'layer_' + str(layer) + '_stack', 8)
 
 print('total score: ' + str(total_score))
 
