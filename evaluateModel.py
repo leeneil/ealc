@@ -60,11 +60,11 @@ def evalModel(model_dir, model_name, tfrecords_dir):
         return accuracy_percent, accu_confusionMat
 
 # python evaluateModel.py    
-tfrecords_dir = os.path.join('online-model', 'saved-model 0301B')
-model_dir = os.path.join('online-model', 'saved-model 0301B')
-model_name = 'optimized_ealc_tensorflow_40000.pb'        
+#tfrecords_dir = os.path.join('online-model', 'saved-model 0301B')
+#model_dir = os.path.join('online-model', 'saved-model 0301B')
+#model_name = 'optimized_ealc_tensorflow_40000.pb'        
 
-accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir)
-print('accuracy_percent = ', accuracy_percent)
-print(accu_confusionMat)
-print_confuMat(accu_confusionMat)
+#accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir)
+#print('accuracy_percent = ', accuracy_percent)
+#print(accu_confusionMat)
+#print_confuMat(accu_confusionMat)

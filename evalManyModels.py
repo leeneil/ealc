@@ -13,7 +13,7 @@ def print_confuMat_to_file(file, confuMat):
         
 ##
 model_dir = os.path.join('saved-model')
-model_root = "optimized_ealc_tensorflow"
+model_root = "optimized_ealc_tensorflow_"
 tfrecords_dir = "tfrecords-output"
 
 ## 
