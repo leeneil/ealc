@@ -189,6 +189,8 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
     accu_confusionMat = np.zeros((num_classes,num_classes))
     mislabeled = []
     for s in range(num_batches):
+        if s%200==0:
+            print("Status: " + str(s) + " / " + str(num_batches))
         # 4.a Accuracy for Test Set
         image_batch2, label_batch2 = sess.run([timage_batch, tlabel_batch])
         acc = sess.run(accuracy2, feed_dict={x: image_batch2,
