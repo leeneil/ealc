@@ -35,7 +35,7 @@ for name in name_List:
     file.write("Model at the step:  " + name + "\n") 
     file.write("Test Set Accuracy: = {:0.5} \n".format(accuracy_percent))
     file.write("Confusion Matrix:  \n")
-    print_confuMat_to_file(file, accu_confusionMats)
+    print_confuMat_to_file(file, accu_confusionMat)
     file.write("\n")
     file.close()
     print("====================================")
