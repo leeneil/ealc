@@ -15,11 +15,11 @@ def load_graph(frozen_graph_filename):
         graph_def.ParseFromString(f.read())
         tf.import_graph_def(graph_def, name='')
 
-def evalModel(model_dir, model_name, tfrecords_dir):
+def evalModel(model_dir, model_name, tfrecords_dir, bath_size, num_classes, image_size):
     # params
-    bath_size = 25
-    num_classes = 4
-    image_size = 128     
+    #bath_size = 25
+    #num_classes = 4
+    #image_size = 128     
         
     with tf.Session() as sess:
         ## Load Graph

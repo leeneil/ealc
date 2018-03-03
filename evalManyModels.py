@@ -25,11 +25,15 @@ tfrecords_dir = "tfrecords-output"
 name_List = [str(i) for i in range(30000,200000,10000)] 
 name_List.append("Final")
 
-##
+## params
+bath_size = 25
+num_classes = 4
+image_size = 128
+
 for name in name_List:
     model_name = model_root + name + ".pb"
     print("========== Eval Model: " + os.path.join(model_dir, model_name)+"==========")
-    accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir)
+    accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir, bath_size, num_classes, image_size)
     print('accuracy_percent = ', accuracy_percent)
     print(accu_confusionMat)
     print_confuMat(accu_confusionMat)

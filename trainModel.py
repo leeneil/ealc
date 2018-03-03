@@ -202,8 +202,8 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
         # 4.b Confusion Matrix for Test Set
         test_labels = label_batch2
         test_predictions = sess.run(y, feed_dict={x: image_batch2, y_: label_batch2, keep_prob: 1.0})
-        nature_labels =   np.argmax(test_labels, axis=1)
-        nature_predicts = np.argmax(test_predictions, axis=1)
+        nature_labels =   tf.argmax(test_labels, axis=1)
+        nature_predicts = tf.argmax(test_predictions, axis=1)
         curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
         accu_confusionMat += sess.run(curr_confusionMat)      
         # 4.c record the mislabeled predictions to "mislabeled"            
