@@ -17,10 +17,10 @@ def load_graph(frozen_graph_filename):
 
 def evalModel(model_dir, model_name, tfrecords_dir):
     # params
-    bath_size = 50
+    bath_size = 25
     num_classes = 4
-    image_size = 128
-
+    image_size = 128     
+        
     with tf.Session() as sess:
         ## Load Graph
         load_graph(os.path.join(model_dir , model_name))

@@ -2,6 +2,7 @@ import os
 import numpy as np
 from evaluateModel import evalModel
 from trainModel import print_confuMat
+import tensorflow as tf
 
 def print_confuMat_to_file(file, confuMat):
     for row in confuMat:
@@ -10,7 +11,10 @@ def print_confuMat_to_file(file, confuMat):
             toPrint += "{:0.3f}".format(col) + "\t"
         file.write(toPrint)
         file.write("\n")
-        
+
+# Use GPU
+with tf.device("/gpu:0"):
+    pass       
         
 ##
 model_dir = os.path.join('saved-model')
@@ -18,7 +22,7 @@ model_root = "optimized_ealc_tensorflow_"
 tfrecords_dir = "tfrecords-output"
 
 ## 
-name_List = [str(i) for i in range(20000,200000,10000)] 
+name_List = [str(i) for i in range(30000,200000,10000)] 
 name_List.append("Final")
 
 ##
