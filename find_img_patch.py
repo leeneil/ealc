@@ -33,10 +33,10 @@ b = 2
 heap_lim = 9
 
 def img_patch( img, uu, vv, k=5, s=1, b=2, layer=1 ):
-    uu0 = layer * b * uu
-    uu1 = uu0 + k + layer * b - 1
-    vv0 = layer * b * vv
-    vv1 = vv0 + k + layer * b - 1
+    uu0 = pow(b,layer) * uu
+    uu1 = uu0 + k * ( pow(b,layer) -1 ) + 1
+    vv0 = pow(b,layer) * vv
+    vv1 = vv0 + k * ( pow(b,layer) -1 ) + 1
     return img[ uu0:uu1, vv0:vv1 ]
 
 
@@ -51,7 +51,7 @@ def make_mosaic( vol, space = 1):
         canvas[ uu*(h+space):(uu*(h+space)+h), vv*(w+space):(vv*(w+space)+w) ] = vol[:,:,u]
     return canvas
 
-def print_grid( v, name = 'grid', n = 8, colormap = cm.gray):
+def print_grid( v, name = 'grid', n = 8, colormap = cm.gray, dpi = 600):
     if len(v.shape) == 3:
         vmax = np.max( v )
         m = np.ceil( v.shape[2] / n )
@@ -61,7 +61,7 @@ def print_grid( v, name = 'grid', n = 8, colormap = cm.gray):
             ax0 = plt.gca()
             plt.axis('off')
             # plt.colorbar(im0)
-        plt.savefig('tmp/' + name + '.png', bbox_inches='tight', dpi=120)
+        plt.savefig('tmp/' + name + '.png', bbox_inches='tight', dpi=dpi)
         # plt.savefig('conc_profile_neutral.pdf', bbox_inches='tight', dpi=600)
         plt.clf()
         plt.cla()
@@ -133,7 +133,7 @@ else:
     p = graph.get_tensor_by_name('prefix/MaxPool_' + str(layer-1) + ':0')
 
 l = int(p.shape[3])
-pad_size = layer * int( (k-1)/2 )
+pad_size = layer * int( (k-1)/2 * (pow(2,layer)-1) )
 # p_max = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 # p_max_source = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 
@@ -195,13 +195,13 @@ total_score = 0
 m = int( np.ceil( np.sqrt(heap_lim) ) )
 n = int( np.ceil( heap_lim / m ) )
 space = 3
-h = k + layer*b - 1
-w = k + layer*b - 1
+h = k * ( pow(b,layer) -1 ) + 1
+w = k * ( pow(b,layer) -1 ) + 1
 
 print('making figures...')
 u_stack = np.zeros( ( m*(h+space)-space, n*(w+space)-space, l) )
 for u in range(l):
-    v_stack = np.zeros( (k+layer*b-1,k+layer*b-1,heap_lim) )
+    v_stack = np.zeros( (h, w, heap_lim) )
     for v in range(heap_lim):
         total_score += p_list[u][v][0]
         filename = p_list[u][v][3]
@@ -217,8 +217,8 @@ for u in range(l):
         (uu,vv) = p_list[u][v][1:3]
         v_stack[:,:,v] = img_patch( img_pad, uu, vv, k, s, b, layer )
     u_stack[:,:,u] = make_mosaic( v_stack, space )
-    print_grid( v_stack, 'layer_' + str(layer) + '_stack_' + str(u), 3)
-print_grid( u_stack, 'layer_' + str(layer) + '_stack', 8)
+    print_grid( v_stack, 'layer_' + str(layer) + '_stack_' + str(u), 3, cm.gray, 300)
+print_grid( u_stack, 'layer_' + str(layer) + '_stack', 8, cm.gray, 600)
 
 print('total score: ' + str(total_score/l/heap_lim))
 
