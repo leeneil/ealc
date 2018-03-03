@@ -147,7 +147,7 @@ label_list = []
 
 for u in range(l):
     p_list.append( [] )
-    heapq.heappush( p_list[u], (0, -1, -1, '') )
+    heapq.heappush( p_list[u], (-1, -1, -1, '') )
 
 count = 0
 with tf.Session(graph=graph) as sess:
