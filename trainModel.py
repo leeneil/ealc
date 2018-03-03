@@ -186,10 +186,10 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
     total_correct_preds = 0
     # 4. Define a different tensor operation for summing the correct predictions.
     accuracy2 = tf.reduce_sum(correct_prediction)
-    accu_confusionMat = np.zeros((num_classes,num_classes))
+    confusionMat2 = tf.zeros([num_classes, num_classes], tf.int32) 
     mislabeled = []
     for s in range(num_batches):
-        if s%200==0:
+        if s%100==0:
             print("{:%I:%M %p} Status: ".format(datetime.datetime.today()) + str(s) + " / " + str(num_batches))
         # 4.a Accuracy for Test Set
         image_batch2, label_batch2 = sess.run([timage_batch, tlabel_batch])
@@ -202,10 +202,10 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
         # 4.b Confusion Matrix for Test Set
         test_labels = label_batch2
         test_predictions = sess.run(y, feed_dict={x: image_batch2, y_: label_batch2, keep_prob: 1.0})
-        nature_labels =   np.argmax(test_labels, axis=1)
-        nature_predicts = np.argmax(test_predictions, axis=1)
+        nature_labels =   tf.argmax(test_labels, axis=1)
+        nature_predicts = tf.argmax(test_predictions, axis=1)
         curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
-        accu_confusionMat += sess.run(curr_confusionMat)      
+        confusionMat2 = tf.add(confusionMat2, curr_confusionMat)     
         # 4.c record the mislabeled predictions to "mislabeled"            
         #if save_mislabeled:
         #    for i in range(len(nature_labels)):
@@ -214,6 +214,7 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
     accuracy_percent = total_correct_preds/(num_batches*bath_size)
     print("Testing Accuracy {}".format(accuracy_percent))
     print('Confusion Matrix:')
+    accu_confusionMat = sess.run(confusionMat2) 
     accu_confusionMat = accu_confusionMat/np.sum(accu_confusionMat,axis=1,keepdims=True)
     print_confuMat(accu_confusionMat)    
     # 5. record the results of testing to trainLog and save mislabeled
@@ -439,15 +440,6 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
         print('The model has been exported to a .pb file!')
         
         print('========= Training Report =========') 
-        # #############################################
-        # Evaluate the whole training set!          #
-        # #############################################
-        accuracy_percent, accu_confusionMat = evaluate_train_data(sess,x,y,y_,keep_prob,
-                                                train_data_files, bath_size, correct_prediction, 
-                                                num_classes, image_batch, label_batch)
-        trainLog.train_overall_accu = accuracy_percent        # log        
-        trainLog.train_overall_confuMat = accu_confusionMat   # log
-        
         
         # #############################################
         # Evaluate Testing Set!                       #
@@ -457,6 +449,16 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
                                                 num_classes, timage_batch, tlabel_batch, True)       
         trainLog.test_accu =     accuracy_percent    # log
         trainLog.test_confuMat=  accu_confusionMat   # log
+          
+        # #############################################
+        # Evaluate the whole training set!          #
+        # #############################################
+        accuracy_percent, accu_confusionMat = evaluate_train_data(sess,x,y,y_,keep_prob,
+                                                train_data_files, bath_size, correct_prediction, 
+                                                num_classes, image_batch, label_batch)
+        trainLog.train_overall_accu = accuracy_percent        # log        
+        trainLog.train_overall_confuMat = accu_confusionMat   # log
+         
         logName = "Final_Log{:%m%d%H%M}".format(datetime.datetime.today())
         with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
             pickle.dump(trainLog, handle, protocol=pickle.HIGHEST_PROTOCOL) # save trainLog
