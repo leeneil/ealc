@@ -76,7 +76,6 @@ def main(tfrecords_dir, model_dir, model_root, model_num ,bath_size, num_classes
             
     ##
     model_name = model_root + model_num + ".pb"
-    print('model_name:   ',model_name)
     print("========== Eval Model: " + os.path.join(model_dir, model_name)+" ==========")
     accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir, bath_size, num_classes, image_size)
     #print('accuracy_percent = ', accuracy_percent)
