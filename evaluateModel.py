@@ -1,4 +1,5 @@
 import os
+import argparse
 import tensorflow as tf
 from tensorflow.python.platform import gfile
 import numpy as np
@@ -6,6 +7,7 @@ from numpy import random
 from trainModel import get_image
 from trainModel import evaluate_test_data
 from trainModel import print_confuMat
+
 
 def load_graph(frozen_graph_filename):
     # We load the protobuf file from the disk and parse it to retrieve the
@@ -57,14 +59,68 @@ def evalModel(model_dir, model_name, tfrecords_dir, bath_size, num_classes, imag
         coord.request_stop()
         coord.join(threads)
         sess.close()
-        return accuracy_percent, accu_confusionMat
+    return accuracy_percent, accu_confusionMat
 
-# python evaluateModel.py    
-#tfrecords_dir = os.path.join('online-model', 'saved-model 0301B')
-#model_dir = os.path.join('online-model', 'saved-model 0301B')
-#model_name = 'optimized_ealc_tensorflow_40000.pb'        
+def print_confuMat_to_file(file, confuMat):
+    for row in confuMat:
+        toPrint = ''
+        for col in row:
+            toPrint += "{:0.3f}".format(col) + "\t"
+        file.write(toPrint)
+        file.write("\n")   
+    
+def main(tfrecords_dir, model_dir, model_root, model_num ,bath_size, num_classes, image_size):
+    # Use GPU
+    with tf.device("/gpu:0"):
+        pass       
+            
+    ##
+    model_name = model_root + model_num + ".pb"
+    print("========== Eval Model: " + os.path.join(model_dir, model_name)+" ==========")
+    accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir, bath_size, num_classes, image_size)
+    #print('accuracy_percent = ', accuracy_percent)
+    #print(accu_confusionMat)
+    #print_confuMat(accu_confusionMat)
+    
+    # write to file 
+    file = open(os.path.join(model_dir, "evalManyModel"+ model_num +".txt"),"w")
+    file.write("Model at the step:  " + model_num + "\n") 
+    file.write("Test Set Accuracy: = {:0.5} \n".format(accuracy_percent))
+    file.write("Confusion Matrix:  \n")
+    print_confuMat_to_file(file, accu_confusionMat)
+    file.write("\n")
+    file.close()
+    print("======================================================================")    
+    
+##   
+#name_List = [str(i) for i in range(50000,200000,10000)] 
+#name_List.append("Final")
+# name_List = ['10', '30', 'Final']
 
-#accuracy_percent, accu_confusionMat = evalModel(model_dir, model_name, tfrecords_dir)
-#print('accuracy_percent = ', accuracy_percent)
-#print(accu_confusionMat)
-#print_confuMat(accu_confusionMat)
+## params
+bath_size = 128
+num_classes = 4
+image_size = 128
+
+##
+model_dir = os.path.join('saved-model')
+model_root = "optimized_ealc_tensorflow_"
+tfrecords_dir = "tfrecords-output"
+  
+parser = argparse.ArgumentParser()
+parser.add_argument('--tfrecords-dir', type=str, dest='tfrecords_dir',
+                    default=tfrecords_dir)
+parser.add_argument('--model-dir', type=str, dest='model_dir',
+                    default=model_dir)
+parser.add_argument('--model-root', type=str, dest='model_root',
+                    default=model_root)
+parser.add_argument('--model-num', type=str, dest='model_num',
+                    default=100000)
+parser.add_argument('--bath-size', type=str, dest='bath_size',
+                    default=bath_size)
+parser.add_argument('--num-class', type=str, dest='num_classes',
+                    default=num_classes)
+parser.add_argument('--image-size', type=str, dest='image_size',
+                    default=image_size) 
+args = parser.parse_args()
+main(args.tfrecords_dir, args.model_dir, args.model_root, args.model_num, int(args.bath_size), int(args.num_classes), int(args.image_size))                    
