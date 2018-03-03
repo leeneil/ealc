@@ -190,7 +190,7 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
     mislabeled = []
     for s in range(num_batches):
         if s%200==0:
-            print("Status: " + str(s) + " / " + str(num_batches))
+            print("{:%I:%M %p} Status: ".format(datetime.datetime.today()) + str(s) + " / " + str(num_batches))
         # 4.a Accuracy for Test Set
         image_batch2, label_batch2 = sess.run([timage_batch, tlabel_batch])
         acc = sess.run(accuracy2, feed_dict={x: image_batch2,
@@ -207,9 +207,9 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
         curr_confusionMat = tf.confusion_matrix(labels=nature_labels, predictions=nature_predicts, num_classes=num_classes)
         accu_confusionMat += sess.run(curr_confusionMat)      
         # 4.c record the mislabeled predictions to "mislabeled"            
-        if save_mislabeled:
-            for i in range(len(nature_labels)):
-                mislabeled.append((image_batch2[i],nature_labels[i],nature_predicts[i]))   # log              
+        #if save_mislabeled:
+        #    for i in range(len(nature_labels)):
+        #        mislabeled.append((image_batch2[i],nature_labels[i],nature_predicts[i]))   # log              
     
     accuracy_percent = total_correct_preds/(num_batches*bath_size)
     print("Testing Accuracy {}".format(accuracy_percent))
@@ -217,10 +217,10 @@ def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct
     accu_confusionMat = accu_confusionMat/np.sum(accu_confusionMat,axis=1,keepdims=True)
     print_confuMat(accu_confusionMat)    
     # 5. record the results of testing to trainLog and save mislabeled
-    if save_mislabeled:
-        logName = "Mislabeled{:%m%d%H%M}".format(datetime.datetime.today())    
-        with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
-            pickle.dump(mislabeled, handle, protocol=pickle.HIGHEST_PROTOCOL) # save mislabeled
+    #if save_mislabeled:
+    #    logName = "Mislabeled{:%m%d%H%M}".format(datetime.datetime.today())    
+    #    with open(os.path.join(DEFAULT_SAVE_NAME, logName+'.pickle'), 'wb') as handle:
+    #        pickle.dump(mislabeled, handle, protocol=pickle.HIGHEST_PROTOCOL) # save mislabeled
     return (accuracy_percent, accu_confusionMat)
  
  
