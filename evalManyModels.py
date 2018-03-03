@@ -26,7 +26,7 @@ name_List = [str(i) for i in range(50000,200000,10000)]
 name_List.append("Final")
 
 ## params
-bath_size = 8
+bath_size = 2
 num_classes = 4
 image_size = 128
 
