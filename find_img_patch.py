@@ -41,6 +41,9 @@ def img_patch( img, uu, vv, k=5, s=1, b=2, layer=1 ):
     uu1 = uu0 + k * ( pow(b,layer) -1 ) + 1
     vv0 = pow(b,layer) * vv
     vv1 = vv0 + k * ( pow(b,layer) -1 ) + 1
+    if layer == 3:
+        uu1 -= 16
+        vv1 -= 16
     return img[ uu0:uu1, vv0:vv1 ]
 
 
@@ -138,6 +141,8 @@ else:
 
 l = int(p.shape[3])
 pad_size = int( (k-1)/2 * (pow(2,layer)-1) )
+if layer == 3:
+    pad_size -= 8
 # p_max = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 # p_max_source = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 
@@ -203,6 +208,9 @@ n = int( np.ceil( heap_lim / m ) )
 space = 3
 h = k * ( pow(b,layer) -1 ) + 1
 w = k * ( pow(b,layer) -1 ) + 1
+if layer == 3:
+    h -= 16
+    w -= 16
 
 if make_figures:
     print('making figures...')
