@@ -115,7 +115,7 @@ parser.add_argument('--model-dir', type=str, dest='model_dir',
 parser.add_argument('--model-root', type=str, dest='model_root',
                     default=model_root)
 parser.add_argument('--model-num', type=str, dest='model_num',
-                    default=100000)
+                    default="100000")
 parser.add_argument('--bath-size', type=str, dest='bath_size',
                     default=bath_size)
 parser.add_argument('--num-class', type=str, dest='num_classes',
@@ -123,4 +123,4 @@ parser.add_argument('--num-class', type=str, dest='num_classes',
 parser.add_argument('--image-size', type=str, dest='image_size',
                     default=image_size) 
 args = parser.parse_args()
-main(args.tfrecords_dir, args.model_dir, args.model_root, args.model_num, int(args.bath_size), int(args.num_classes), int(args.image_size))                    
+main(args.tfrecords_dir, args.model_dir, args.model_root, str(args.model_num), int(args.bath_size), int(args.num_classes), int(args.image_size))                    
