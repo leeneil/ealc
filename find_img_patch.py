@@ -6,10 +6,14 @@ from scipy import misc
 import sys
 import cv2
 import heapq
+import json
+import re
 
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+
+make_figures = True
 
 pb_file = 'saved-model/optimized_ealc_tensorflow_Final.pb'
 layer = 1
@@ -37,6 +41,9 @@ def img_patch( img, uu, vv, k=5, s=1, b=2, layer=1 ):
     uu1 = uu0 + k * ( pow(b,layer) -1 ) + 1
     vv0 = pow(b,layer) * vv
     vv1 = vv0 + k * ( pow(b,layer) -1 ) + 1
+    if layer == 3:
+        uu1 -= 16
+        vv1 -= 16
     return img[ uu0:uu1, vv0:vv1 ]
 
 
@@ -133,15 +140,19 @@ else:
     p = graph.get_tensor_by_name('prefix/MaxPool_' + str(layer-1) + ':0')
 
 l = int(p.shape[3])
-pad_size = layer * int( (k-1)/2 * (pow(2,layer)-1) )
+pad_size = int( (k-1)/2 * (pow(2,layer)-1) )
+if layer == 3:
+    pad_size -= 8
 # p_max = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 # p_max_source = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 
 p_heap = []
 p_list = []
+label_list = []
+
 for u in range(l):
     p_list.append( [] )
-    heapq.heappush( p_list[u], (0, -1, -1, '') )
+    heapq.heappush( p_list[u], (-1, -1, -1, '') )
 
 count = 0
 with tf.Session(graph=graph) as sess:
@@ -197,33 +208,44 @@ n = int( np.ceil( heap_lim / m ) )
 space = 3
 h = k * ( pow(b,layer) -1 ) + 1
 w = k * ( pow(b,layer) -1 ) + 1
+if layer == 3:
+    h -= 16
+    w -= 16
 
-print('making figures...')
-u_stack = np.zeros( ( m*(h+space)-space, n*(w+space)-space, l) )
-for u in range(l):
-    v_stack = np.zeros( (h, w, heap_lim) )
-    for v in range(heap_lim):
-        total_score += p_list[u][v][0]
-        filename = p_list[u][v][3]
-        if filename == '':
-            break
-        img = cv2.imread( filename )
-        if img is None:
-            print('weird: ' + filename)
-            continue
-        if len(img.shape) > 2:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_pad = np.pad( img, ( (pad_size,pad_size), (pad_size,pad_size)), 'constant', constant_values=255 )
-        (uu,vv) = p_list[u][v][1:3]
-        v_stack[:,:,v] = img_patch( img_pad, uu, vv, k, s, b, layer )
-    u_stack[:,:,u] = make_mosaic( v_stack, space )
-    print_grid( v_stack, 'layer_' + str(layer) + '_stack_' + str(u), 3, cm.gray, 300)
-print_grid( u_stack, 'layer_' + str(layer) + '_stack', 8, cm.gray, 600)
+if make_figures:
+    print('making figures...')
+    u_stack = np.zeros( ( m*(h+space)-space, n*(w+space)-space, l) )
+    for u in range(l):
+        label_list.append([])
+        v_stack = np.zeros( (h, w, heap_lim) )
+        for v in range(heap_lim):
+            score = p_list[u][v][0]
+            total_score += score
+            filename = p_list[u][v][3]
+            try:
+                label = re.findall(r'\/([tw]{2}|[kr]{2}|[cn]{2}|[jp]{2})\/', filename)[0]
+            except:
+                label = '?'
+            label_list[u].append({'score':int(score), 'label': label, 'filename':filename})
+            if filename == '':
+                break
+            img = cv2.imread( filename )
+            if img is None:
+                print('weird: ' + filename)
+                continue
+            if len(img.shape) > 2:
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            img_pad = np.pad( img, ( (pad_size,pad_size), (pad_size,pad_size)), 'constant', constant_values=255 )
+            (uu,vv) = p_list[u][v][1:3]
+            v_stack[:,:,v] = img_patch( img_pad, uu, vv, k, s, b, layer )
+        u_stack[:,:,u] = make_mosaic( v_stack, space )
+        print_grid( v_stack, 'layer_' + str(layer) + '_stack_' + str(u), 3, cm.gray, 300)
+    print_grid( u_stack, 'layer_' + str(layer) + '_stack', 8, cm.gray, 600)
 
-print('total score: ' + str(total_score/l/heap_lim))
+    print('total score: ' + str(total_score/l/heap_lim))
 
-
-
+with open('tmp/layer_' + str(layer) + '.json', 'w') as outfile:
+    json.dump(label_list, outfile, ensure_ascii=False, indent=2)
 
 
 '''
