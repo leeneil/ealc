@@ -22,11 +22,11 @@ model_root = "optimized_ealc_tensorflow_"
 tfrecords_dir = "tfrecords-output"
 
 ## 
-name_List = [str(i) for i in range(30000,200000,10000)] 
+name_List = [str(i) for i in range(50000,200000,10000)] 
 name_List.append("Final")
 
 ## params
-bath_size = 25
+bath_size = 16
 num_classes = 4
 image_size = 128
 
