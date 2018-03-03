@@ -137,7 +137,7 @@ else:
     p = graph.get_tensor_by_name('prefix/MaxPool_' + str(layer-1) + ':0')
 
 l = int(p.shape[3])
-pad_size = layer * int( (k-1)/2 * (pow(2,layer)-1) )
+pad_size = int( (k-1)/2 * (pow(2,layer)-1) )
 # p_max = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 # p_max_source = np.zeros( (1, p.shape[1], p.shape[2], p.shape[3]) )
 
@@ -214,7 +214,10 @@ if make_figures:
             score = p_list[u][v][0]
             total_score += score
             filename = p_list[u][v][3]
-            label = re.findall(r'\/([tw]{2}|[kr]{2}|[cn]{2}|[jp]{2})\/', filename)[0]
+            try:
+                label = re.findall(r'\/([tw]{2}|[kr]{2}|[cn]{2}|[jp]{2})\/', filename)[0]
+            except:
+                label = '?'
             label_list[u].append({'score':int(score), 'label': label, 'filename':filename})
             if filename == '':
                 break
@@ -233,7 +236,6 @@ if make_figures:
 
     print('total score: ' + str(total_score/l/heap_lim))
 
-print(label_list)
 with open('tmp/layer_' + str(layer) + '.json', 'w') as outfile:
     json.dump(label_list, outfile, ensure_ascii=False, indent=2)
 
