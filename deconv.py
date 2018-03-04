@@ -139,12 +139,14 @@ def print_volume( v, layer_name = 'test', colormap = cm.gray):
 
 graph = load_graph(export_dir + model_name)
 
+
 print(graph)
 for op in graph.get_operations():
     print(op.name)
 
 img = cv2.imread( sys.argv[1])
-img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+if len(img.shape) > 2:
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 if vectorize:
     img = np.reshape(img, (-1, 128*128))
 
@@ -299,7 +301,7 @@ if depth == 3:
 
     dconv1 = deconv2( unmaxp1, w_out, b_out )
     # misc.imsave('tmp/' + prefix + '_deconv1_sum.png', np.sum(dconv1, axis=2))
-    print_volume(np.sum(dconv, axis=2), 'deconv1_sum', cm.magma)
+    print_volume(np.sum(dconv1, axis=2), 'deconv1_sum', cm.magma)
 
 elif depth == 2:
 
