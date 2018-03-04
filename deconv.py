@@ -16,6 +16,7 @@ import matplotlib.cm as cm
 
 depth = 3
 print_layers = False
+debug = False
 export_dir = 'saved-model/'
 model_name = 'optimized_ealc_tensorflow_Final.pb'
 
@@ -80,7 +81,7 @@ def unmaxpool( maxp, amax, k=2, s=2 ):
                     pass
                 else:
                     vv = amax[u,v,w] % k
-                    uu = int( (amax[u,v,w]-k) / k )
+                    uu = int( (amax[u,v,w]-vv) / k )
                     a[u*s+uu,v*s+vv,w] = maxp[u,v,w]
     return a
 
@@ -96,6 +97,7 @@ def deconv2( g, h, b ):
             # h_fft = np.fft.fft2( np.rot90(h[:,:,u], 2) )
             # f[:,:,u] = np.fft.fftshift( np.fft.ifft2( g_fft * h_fft ) )
     f[ np.isnan(f) ] = 0
+
     return f
 
 
@@ -239,8 +241,11 @@ if depth == 3:
     if print_layers:
         print_volume( maxact3, 'max_activation3')
 
-    # unmaxp3 = unmaxpool( maxact3, amax, 2, 2 )
-    unmaxp3 = unmaxpool( output, amax, 2, 2 )
+    if debug:
+        unmaxp3 = unmaxpool( output, amax, 2, 2 )
+    else:
+        unmaxp3 = unmaxpool( maxact3, amax, 2, 2 )
+
     if print_layers:
         print_volume(unmaxp3, 'unmaxpool3')
 
@@ -256,7 +261,7 @@ if depth == 3:
     print('shape of dconv3')
     print(dconv3.shape)
 
-    # misc.imsave('tmp/' + prefix + '_deconv3_sum.png', np.sum(dconv3, axis=2))
+    misc.imsave('tmp/' + prefix + '_deconv3_sum_gray.png', np.sum(dconv3, axis=2))
     print_volume(np.sum(dconv3, axis=2), prefix+'_deconv3_sum', cm.magma)
 
     # layer 2
@@ -289,7 +294,7 @@ if depth == 3:
     print('shape of dconv2')
     print(dconv2.shape)
 
-    # misc.imsave('tmp/' + prefix + '_deconv2_sum.png', np.sum(dconv2, axis=2))
+    misc.imsave('tmp/' + prefix + '_deconv2_sum_gray.png', np.sum(dconv2, axis=2))
     print_volume(np.sum(dconv2, axis=2), prefix+'_deconv2_sum', cm.magma)
 
     # layer 1
@@ -300,7 +305,7 @@ if depth == 3:
     unmaxp1 = unmaxpool( dconv2, amax, 2, 2 )
 
     dconv1 = deconv2( unmaxp1, w_out, b_out )
-    # misc.imsave('tmp/' + prefix + '_deconv1_sum.png', np.sum(dconv1, axis=2))
+    misc.imsave('tmp/' + prefix + '_deconv1_sum_gray.png', np.sum(dconv1, axis=2))
     print_volume(np.sum(dconv1, axis=2), prefix+'_deconv1_sum', cm.magma)
 
 elif depth == 2:
@@ -323,7 +328,11 @@ elif depth == 2:
     if print_layers:
         print_volume( maxact2, 'max_activation1')
 
-    unmaxp2 = unmaxpool( maxact2, amax, 2, 2 )
+    if debug:
+        unmaxp2 = unmaxpool( output, amax, 2, 2 )
+    else:
+        unmaxp2 = unmaxpool( maxact2, amax, 2, 2 )
+
     if print_layers:
         print_volume(unmaxp2, 'unmaxpool2')
 
@@ -339,8 +348,8 @@ elif depth == 2:
     print('shape of dconv2')
     print(dconv2.shape)
 
-    # misc.imsave('tmp/deconv2_sum.png', np.sum(dconv2, axis=2))
-    print_volume(np.sum(dconv, axis=2), 'deconv2_sum', cm.magma)
+    misc.imsave('tmp/deconv2_sum_gray.png', np.sum(dconv2, axis=2))
+    print_volume(np.sum(dconv2, axis=2), 'deconv2_sum', cm.magma)
 
     # layer 1
 
@@ -350,8 +359,8 @@ elif depth == 2:
     unmaxp1 = unmaxpool( dconv2, amax, 2, 2 )
 
     dconv1 = deconv2( unmaxp1, w_out, b_out )
-    # misc.imsave('tmp/deconv1_sum.png', np.sum(dconv1, axis=2))
-    print_volume(np.sum(dconv, axis=2), 'deconv1_sum', cm.magma)
+    misc.imsave('tmp/deconv1_sum_gray.png', np.sum(dconv1, axis=2))
+    print_volume(np.sum(dconv1, axis=2), 'deconv1_sum', cm.magma)
 
 
 
@@ -377,9 +386,11 @@ else: # 1 layer
 
     # print(amax)
 
+    if debug:
+        unmaxp = unmaxpool( output, amax, 2, 2 )
+    else:
+        unmaxp = unmaxpool( maxact, amax, 2, 2 )
 
-    unmaxp = unmaxpool( maxact, amax, 2, 2 )
-    # unmaxp = unmaxpool( output, amax, 2, 2 )
     if print_layers:
         print_volume(unmaxp, 'unmaxpool1')
 
@@ -402,7 +413,7 @@ else: # 1 layer
         print_volume(dconv, 'deconv1')
 
     print_volume(np.sum(dconv, axis=2), 'deconv1_sum', cm.magma)
-    # misc.imsave('tmp/deconv1_sum.png', np.sum(dconv, axis=2))
+    misc.imsave('tmp/deconv1_sum_gray.png', np.sum(dconv, axis=2))
 
 
 #
