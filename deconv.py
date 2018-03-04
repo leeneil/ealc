@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
 depth = 3
-print_layers = True
+print_layers = False
 export_dir = 'saved-model/'
 model_name = 'optimized_ealc_tensorflow_Final.pb'
 
@@ -254,7 +254,8 @@ if depth == 3:
     print('shape of dconv3')
     print(dconv3.shape)
 
-    misc.imsave('tmp/' + prefix + '_deconv3_sum.png', np.sum(dconv3, axis=2))
+    # misc.imsave('tmp/' + prefix + '_deconv3_sum.png', np.sum(dconv3, axis=2))
+    print_volume(np.sum(dconv3, axis=2), 'deconv3_sum', cm.magma)
 
     # layer 2
 
@@ -286,7 +287,8 @@ if depth == 3:
     print('shape of dconv2')
     print(dconv2.shape)
 
-    misc.imsave('tmp/' + prefix + '_deconv2_sum.png', np.sum(dconv2, axis=2))
+    # misc.imsave('tmp/' + prefix + '_deconv2_sum.png', np.sum(dconv2, axis=2))
+    print_volume(np.sum(dconv2, axis=2), 'deconv2_sum', cm.magma)
 
     # layer 1
 
@@ -296,7 +298,8 @@ if depth == 3:
     unmaxp1 = unmaxpool( dconv2, amax, 2, 2 )
 
     dconv1 = deconv2( unmaxp1, w_out, b_out )
-    misc.imsave('tmp/' + prefix + '_deconv1_sum.png', np.sum(dconv1, axis=2))
+    # misc.imsave('tmp/' + prefix + '_deconv1_sum.png', np.sum(dconv1, axis=2))
+    print_volume(np.sum(dconv, axis=2), 'deconv1_sum', cm.magma)
 
 elif depth == 2:
 
@@ -334,7 +337,8 @@ elif depth == 2:
     print('shape of dconv2')
     print(dconv2.shape)
 
-    misc.imsave('tmp/deconv2_sum.png', np.sum(dconv2, axis=2))
+    # misc.imsave('tmp/deconv2_sum.png', np.sum(dconv2, axis=2))
+    print_volume(np.sum(dconv, axis=2), 'deconv2_sum', cm.magma)
 
     # layer 1
 
@@ -344,7 +348,8 @@ elif depth == 2:
     unmaxp1 = unmaxpool( dconv2, amax, 2, 2 )
 
     dconv1 = deconv2( unmaxp1, w_out, b_out )
-    misc.imsave('tmp/deconv1_sum.png', np.sum(dconv1, axis=2))
+    # misc.imsave('tmp/deconv1_sum.png', np.sum(dconv1, axis=2))
+    print_volume(np.sum(dconv, axis=2), 'deconv1_sum', cm.magma)
 
 
 
@@ -394,8 +399,8 @@ else: # 1 layer
     if print_layers:
         print_volume(dconv, 'deconv1')
 
-    # print_volume(np.sum(dconv, axis=2), 'deconv1_sum')
-    misc.imsave('tmp/deconv1_sum.png', np.sum(dconv, axis=2))
+    print_volume(np.sum(dconv, axis=2), 'deconv1_sum', cm.magma)
+    # misc.imsave('tmp/deconv1_sum.png', np.sum(dconv, axis=2))
 
 
 #
