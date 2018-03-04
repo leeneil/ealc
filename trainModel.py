@@ -151,6 +151,8 @@ def evaluate_train_data(sess,x,y,y_,keep_prob,train_data_files, bath_size, corre
     accuracy2 = tf.reduce_sum(correct_prediction)
     confusionMat2 = tf.zeros([num_classes, num_classes], tf.int32)
     for s in range(num_batches):
+        if s%100==0:
+            print("{:%I:%M %p} Status: ".format(datetime.datetime.today()) + str(s) + " / " + str(num_batches))
         # 4A. Accuracy for Train Set
         image_batch2, label_batch2 = sess.run([image_batch, label_batch])
         acc = sess.run(accuracy2, feed_dict={x: image_batch2,
