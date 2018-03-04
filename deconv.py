@@ -257,7 +257,7 @@ if depth == 3:
     print(dconv3.shape)
 
     # misc.imsave('tmp/' + prefix + '_deconv3_sum.png', np.sum(dconv3, axis=2))
-    print_volume(np.sum(dconv3, axis=2), prefix+'deconv3_sum', cm.magma)
+    print_volume(np.sum(dconv3, axis=2), prefix+'_deconv3_sum', cm.magma)
 
     # layer 2
 
@@ -290,7 +290,7 @@ if depth == 3:
     print(dconv2.shape)
 
     # misc.imsave('tmp/' + prefix + '_deconv2_sum.png', np.sum(dconv2, axis=2))
-    print_volume(np.sum(dconv2, axis=2), prefix+'deconv2_sum', cm.magma)
+    print_volume(np.sum(dconv2, axis=2), prefix+'_deconv2_sum', cm.magma)
 
     # layer 1
 
@@ -301,7 +301,7 @@ if depth == 3:
 
     dconv1 = deconv2( unmaxp1, w_out, b_out )
     # misc.imsave('tmp/' + prefix + '_deconv1_sum.png', np.sum(dconv1, axis=2))
-    print_volume(np.sum(dconv1, axis=2), prefix+'deconv1_sum', cm.magma)
+    print_volume(np.sum(dconv1, axis=2), prefix+'_deconv1_sum', cm.magma)
 
 elif depth == 2:
 
