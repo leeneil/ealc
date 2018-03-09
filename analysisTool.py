@@ -43,13 +43,21 @@ def create_graph(modelFullPath):
         tf.import_graph_def(graph_def, name='')
 
 # [It can be used outside]
-def get_tfModel_params():
+def get_tfModel_params(filepath):
     """ Get the weigths, bias, filters in the neural network """
-    GRAPH_DIR = os.path.join('saved-model','frozen_ealc_tensorflow.pb')
-    create_graph(GRAPH_DIR)
+    # GRAPH_DIR = os.path.join('saved-model','frozen_ealc_tensorflow.pb')
+    create_graph(filepath)
     constant_values = {}
     with tf.Session() as sess:
       constant_ops = [op for op in sess.graph.get_operations() if op.type == "Const"]
       for constant_op in constant_ops:
         constant_values[constant_op.name] = sess.run(constant_op.outputs[0])       
     return constant_values
+
+def load_graph(frozen_graph_filename):
+    # We load the protobuf file from the disk and parse it to retrieve the
+    # unserialized graph_def
+    with tf.gfile.GFile(frozen_graph_filename, "rb") as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+        tf.import_graph_def(graph_def, name='')
