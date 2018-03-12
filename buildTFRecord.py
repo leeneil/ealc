@@ -153,7 +153,7 @@ class TFRecordsConverter(object):
         print('Processing dev set TFRecords...')
         files_per_shard = math.ceil(num_files_dev / self.num_shards_dev)
         start = num_files_train + num_files_test
-        for i in range(1, self.num_files_dev):
+        for i in range(1, self.num_shards_dev):
             shard_path = os.path.join(self.output_dir,
                                       'dev-{}.tfrecords'.format(str(i)))
             file_indices = np.arange(start, start+files_per_shard, dtype=int)
