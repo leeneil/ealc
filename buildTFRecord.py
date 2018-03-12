@@ -16,7 +16,9 @@ DEFAULT_LABEL_CSV = os.path.join('data','labels-map.csv')
 DEFAULT_OUTPUT_DIR = os.path.join('tfrecords-output')
 DEFAULT_NUM_SHARDS_TRAIN = 3
 DEFAULT_NUM_SHARDS_TEST = 1
-DEFAULT_TEST_PERCENTAGE = 0.20
+DEFAULT_NUM_SHARDS_DEV  = 1 
+DEFAULT_TEST_PERCENTAGE = 0.1
+DEFAULT_DEV_PERCENTAGE  = 0.1
 
 
 def _int64_feature(value):
@@ -31,11 +33,12 @@ class TFRecordsConverter(object):
     """Class that handles converting images to TFRecords."""
 
     def __init__(self, labels_csv, output_dir,
-                 num_shards_train, num_shards_test):
+                 num_shards_train, num_shards_test, num_shards_dev):
 
         self.output_dir = output_dir
         self.num_shards_train = num_shards_train
-        self.num_shards_test = num_shards_test
+        self.num_shards_test  = num_shards_test
+        self.num_shards_dev   = num_shards_dev
 
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
@@ -90,7 +93,7 @@ class TFRecordsConverter(object):
                 print('Processed {} images...'.format(self.counter))
         writer.close()
 
-    def convert(self, test_percentage):
+    def convert(self, test_percentage, dev_percentage):
         """This function will drive the conversion to TFRecords.
 
         Here, we partition the data into a training and testing set, then
@@ -101,9 +104,12 @@ class TFRecordsConverter(object):
 
         # Allocate about [test_percentage] percent of images to testing
         num_files_test = int(num_files_total * test_percentage)
+        
+        # Allocate about [dev_percentage] percent of images to dev
+        num_files_dev = int(num_files_total * dev_percentage)
 
-        # About 85 percent will be for training.
-        num_files_train = num_files_total - num_files_test
+        # The remaining data will be for training.
+        num_files_train = num_files_total - num_files_test - num_files_dev
 
         print('Processing training set TFRecords...')
 
@@ -144,6 +150,24 @@ class TFRecordsConverter(object):
                                             str(self.num_shards_test)))
         self.write_tfrecords_file(final_shard_path, file_indices)
 
+        print('Processing dev set TFRecords...')
+        files_per_shard = math.ceil(num_files_dev / self.num_shards_dev)
+        start = num_files_train + num_files_test
+        for i in range(1, self.num_files_dev):
+            shard_path = os.path.join(self.output_dir,
+                                      'dev-{}.tfrecords'.format(str(i)))
+            file_indices = np.arange(start, start+files_per_shard, dtype=int)
+            start = start + files_per_shard
+            self.write_tfrecords_file(shard_path, file_indices)
+
+        # The remaining images will go in the final shard.
+        file_indices = np.arange(start, num_files_total, dtype=int)
+        final_shard_path = os.path.join(self.output_dir,
+                                        'dev-{}.tfrecords'.format(
+                                            str(self.num_shards_test)))
+        self.write_tfrecords_file(final_shard_path, file_indices)
+
+       
         print('\nProcessed {} total images...'.format(self.counter))
         print('Number of training examples: {}'.format(num_files_train))
         print('Number of testing examples: {}'.format(num_files_test))
@@ -169,14 +193,25 @@ if __name__ == '__main__':
                         default=DEFAULT_NUM_SHARDS_TEST,
                         help='Number of shards to divide testing set '
                              'TFRecords into.')
+    parser.add_argument('--num-shards-dev', type=int,
+                        dest='num_shards_dev',
+                        default=DEFAULT_NUM_SHARDS_DEV,
+                        help='Number of shards to divide dev set '
+                             'TFRecords into.')                         
     parser.add_argument('--test-percentage', type=float,
                         dest='test_percentage',
                         default=DEFAULT_TEST_PERCENTAGE,
                         help='Percentage of the test data set. '
-                             'TFRecords into.')                            
+                             'TFRecords into.')
+    parser.add_argument('--dev-percentage', type=float,
+                        dest='dev_percentage',
+                        default=DEFAULT_DEV_PERCENTAGE,
+                        help='Percentage of the dev data set. '
+                             'TFRecords into.')                                                         
     args = parser.parse_args()
     converter = TFRecordsConverter(args.labels_csv,
                                    args.output_dir,
                                    args.num_shards_train,
-                                   args.num_shards_test)
-    converter.convert(float(args.test_percentage))
+                                   args.num_shards_test,
+                                   args.num_shards_dev)
+    converter.convert(float(args.test_percentage), float(args.dev_percentage))
