@@ -386,7 +386,7 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
             
             # Perform the training step, feeding in the batches.
             sess.run(train_step, feed_dict={x: train_images, y_: train_labels,
-                                            keep_prob: 0.5})
+                                            keep_prob: 0.9})
             
             # Every 100 iterations, we print the training accuracy.
             if step % print_steps == 0:
