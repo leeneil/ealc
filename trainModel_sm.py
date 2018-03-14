@@ -138,7 +138,7 @@ def print_confuMat(confuMat):
 
 def evaluate_train_data(sess,x,y,y_,keep_prob,train_data_files, bath_size, correct_prediction, num_classes, image_batch, label_batch):     
     # to accelerate the eval
-    bath_size = 768
+    bath_size = 1024
     # Calculate the overall training accuracy and confusion matrix    
     # 1. Get number of samples in training set.
     sample_count = 0
@@ -181,7 +181,7 @@ def evaluate_train_data(sess,x,y,y_,keep_prob,train_data_files, bath_size, corre
 
 def evaluate_test_data(sess,x,y,y_,keep_prob,test_data_files, bath_size, correct_prediction, num_classes, timage_batch, tlabel_batch, save_mislabeled=False):
     # to accelerate the eval
-    bath_size = 768
+    bath_size = 1024
     # 1. Get number of samples in test set.
     sample_count = 0
     for f in test_data_files:
