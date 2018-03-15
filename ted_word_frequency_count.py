@@ -1,5 +1,3 @@
-
-
 from os import walk
 import os
 import sys
@@ -8,12 +6,12 @@ import numpy as np
 import re
 import json
 import math
+import heapq
 
 random.seed(230)
 
 
-
-
+heap_lim = 100
 lim = 10
 if len(sys.argv) < 2:
     raise('Please specify label')
@@ -66,3 +64,19 @@ for filename in files:
 with open('tmp/' + label + '_frequency_counts.json', 'w') as outfile:
     json.dump(counts, outfile, ensure_ascii=False, indent=2)
 print(counts)
+
+top_counts = [(0,'')]
+
+for key in counts:
+    this_count = counts[key]
+    if this_count > top_counts[0][0]:
+        if len(top_counts) >= heap_lim:
+            heapq.heappushpop(top_counts, (this_count, key))
+        else:
+            heapq.heappush(top_counts, (this_count, key))
+
+top_counts.sort()
+
+with open('tmp/' + label + '_frequency_counts_top' + str(heap_lim) + '.json', 'w') as outfile:
+    json.dump(top_counts, outfile, ensure_ascii=False, indent=2)
+print(top_counts)
