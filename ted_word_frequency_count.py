@@ -32,6 +32,7 @@ for (dirpath, dirnames, filenames) in walk(dpath):
 counts = {}
 
 file_count = 0
+c_count = 0
 
 for filename in files:
     if not re.match(r'\w+\.json', filename):
@@ -53,6 +54,7 @@ for filename in files:
             print('* ' + text)
 
             for c in text:
+                c_count += 1
                 if c in counts:
                     counts[c] += 1
                 else:
@@ -69,11 +71,12 @@ top_counts = [(0,'')]
 
 for key in counts:
     this_count = counts[key]
+    this_freq = this_count*1.0 / c_count
     if this_count > top_counts[0][0]:
         if len(top_counts) >= heap_lim:
-            heapq.heappushpop(top_counts, (this_count, key))
+            heapq.heappushpop(top_counts, (this_count, this_freq, key))
         else:
-            heapq.heappush(top_counts, (this_count, key))
+            heapq.heappush(top_counts, (this_count, this_freq, key))
 
 top_counts.sort()
 
