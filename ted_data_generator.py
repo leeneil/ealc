@@ -7,16 +7,18 @@ import os
 import sys
 import random
 import numpy as np
+from numpy import random
 import re
 import json
 import math
 
 random.seed(230)
+noisy = True
 
 fonts = ['../fonts/NotoSerifCJK-ExtraLight.ttc', '../fonts/NotoSerifCJK-Light.ttc',
-    '../fonts/NotoSerifCJK-Regular.ttc', '../fonts/NotoSerifCJK-Medium.ttc', 
+    '../fonts/NotoSerifCJK-Regular.ttc', '../fonts/NotoSerifCJK-Medium.ttc',
     '../fonts/NotoSerifCJK-SemiBold.ttc', '../fonts/NotoSerifCJK-Bold.ttc',
-    '../fonts/NotoSerifCJK-Black.ttc', '../fonts/NotoSansCJK-Thin.ttc', 
+    '../fonts/NotoSerifCJK-Black.ttc', '../fonts/NotoSansCJK-Thin.ttc',
     '../fonts/NotoSansCJK-Light.ttc', '../fonts/NotoSansCJK-DemiLight.ttc',
     '../fonts/NotoSansCJK-Regular.ttc', '../fonts/NotoSansCJK-Medium.ttc',
     '../fonts/NotoSansCJK-Bold.ttc', '../fonts/NotoSansCJK-Black.ttc']
@@ -92,6 +94,12 @@ for filename in files:
                 else:
                     d.text( (x_offset,y_offset+t*y_delta), \
                         text[(0+t*n_perline):((t+1)*n_perline)], fill=0, font=f)
+
+            if noisy:
+                nosie = random.randint(1,25) * random.randn( img.shape )
+                img = img + noise
+
+
             img.save( dest_path + str(pic_count).zfill(6) + '.png')
             img.close()
             pic_count += 1
