@@ -25,7 +25,7 @@ def get_pickle():
     return filename
 
 # [It can be used outside]
-def get_training_log(filename = get_pickle()):
+def get_training_log(filename):
     # Open the pickle file, output as a dictionary
     with open(filename, 'rb') as handle:
         log = pickle.load(handle)
