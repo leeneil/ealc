@@ -14,15 +14,21 @@ import math
 
 random.seed(230)
 noisy = True
+debug = False
 
-fonts = ['../fonts/NotoSerifCJK-ExtraLight.ttc', '../fonts/NotoSerifCJK-Light.ttc',
-    '../fonts/NotoSerifCJK-Regular.ttc', '../fonts/NotoSerifCJK-Medium.ttc',
-    '../fonts/NotoSerifCJK-SemiBold.ttc', '../fonts/NotoSerifCJK-Bold.ttc',
-    '../fonts/NotoSerifCJK-Black.ttc', '../fonts/NotoSansCJK-Thin.ttc',
-    '../fonts/NotoSansCJK-Light.ttc', '../fonts/NotoSansCJK-DemiLight.ttc',
-    '../fonts/NotoSansCJK-Regular.ttc', '../fonts/NotoSansCJK-Medium.ttc',
-    '../fonts/NotoSansCJK-Bold.ttc', '../fonts/NotoSansCJK-Black.ttc']
-font = 'fonts/NotoSansCJK-Regular.ttc'
+
+if debug:
+    fonts = ['/Users/liponan/Library/Fonts/jf-jinxuan-fresh2.1-medium.otf',
+        '/Users/liponan/Library/Fonts/jf-jinxuan-fresh2.1-medium.otf']
+else:
+    fonts = ['../fonts/NotoSerifCJK-ExtraLight.ttc', '../fonts/NotoSerifCJK-Light.ttc',
+        '../fonts/NotoSerifCJK-Regular.ttc', '../fonts/NotoSerifCJK-Medium.ttc',
+        '../fonts/NotoSerifCJK-SemiBold.ttc', '../fonts/NotoSerifCJK-Bold.ttc',
+        '../fonts/NotoSerifCJK-Black.ttc', '../fonts/NotoSansCJK-Thin.ttc',
+        '../fonts/NotoSansCJK-Light.ttc', '../fonts/NotoSansCJK-DemiLight.ttc',
+        '../fonts/NotoSansCJK-Regular.ttc', '../fonts/NotoSansCJK-Medium.ttc',
+        '../fonts/NotoSansCJK-Bold.ttc', '../fonts/NotoSansCJK-Black.ttc']
+    font = 'fonts/NotoSansCJK-Regular.ttc'
 new_size = 128
 sample_path = 'samples_128/'
 
@@ -96,8 +102,10 @@ for filename in files:
                         text[(0+t*n_perline):((t+1)*n_perline)], fill=0, font=f)
 
             if noisy:
-                nosie = random.randint(1,25) * random.randn( img.shape )
-                img = img + noise
+                noise = 25.5 * random.randn() * random.randn( img.size[0], img.size[1] )
+                img = np.asarray(img, dtype=np.float) + noise
+                img = np.maximum( np.minimum( img, 255 ), 0 )
+                img = Image.fromarray(img.astype('uint8'), 'L')
 
 
             img.save( dest_path + str(pic_count).zfill(6) + '.png')
