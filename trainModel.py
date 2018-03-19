@@ -366,7 +366,6 @@ def main(tfrecords_dir, model_output_dir, num_train_steps, bath_size, print_step
         # #############################################
         # Training Steps!                             #
         # #############################################
-        
         # Initialize the variables.
         sess.run(tf.global_variables_initializer())
 
